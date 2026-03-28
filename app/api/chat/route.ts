@@ -54,7 +54,14 @@ export async function POST(req: NextRequest) {
 
   const messages: ChatMessage[] = [...(history ?? []), { role: 'user', content: message }]
 
-  const aiReply = await getResponse(systemPrompt, messages, hotel.responseRules)
+  let aiReply: string
+  try {
+    aiReply = await getResponse(systemPrompt, messages, hotel.responseRules)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[chat/route] Anthropic error:', message)
+    return NextResponse.json({ error: 'AI service error', detail: message }, { status: 502 })
+  }
 
   const reply = escalationAction.appendToResponse
     ? `${aiReply}\n\n${escalationAction.appendToResponse}`
