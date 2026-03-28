@@ -90,27 +90,8 @@ export type EscalationCategory = {
 export type EscalationConfig = {
   categories: EscalationCategory[]
   goodwillGestures: GoodwillGesture[]
-  humanHandoffMessage: Record<'de' | 'en', string>
+  humanHandoffMessage: string
   staffContactMethod: string
-}
-
-export type LanguageToneRule = {
-  formalAddress: boolean
-  style: 'formal' | 'warm' | 'casual'
-  hint: string
-}
-
-export type BookingSource = 'direct' | 'airbnb' | 'booking'
-
-export type DocumentSupport = {
-  menus: boolean
-  invoices: boolean
-}
-
-export type BookingConfig = {
-  sources: BookingSource[]
-  paymentStatusAware: boolean
-  documentSupport: DocumentSupport
 }
 
 export type HotelConfig = {
@@ -134,7 +115,6 @@ export type HotelConfig = {
   responseRules: ResponseRules
   proactive: ProactiveConfig
   guestContext: GuestContextConfig
-  languageTones: Record<'de' | 'en', LanguageToneRule>
   facilities: Record<string, Facility>
   dining: DiningOutlet[]
   services: HotelService[]
@@ -143,5 +123,4 @@ export type HotelConfig = {
   faqs: FAQ[]
   tone: ToneProfile
   escalation: EscalationConfig
-  booking: BookingConfig
 }

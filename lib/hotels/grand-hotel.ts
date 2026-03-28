@@ -2,7 +2,7 @@ import type { HotelConfig } from '@/lib/knowledge-base/types'
 
 export const grandHotel: HotelConfig = {
   id: 'grand-hotel',
-  name: 'Curt AI Hotel (Prototype)',
+  name: 'Grand Hotel Vienna',
   location: {
     city: 'Vienna',
     country: 'Austria',
@@ -11,7 +11,7 @@ export const grandHotel: HotelConfig = {
   },
   contact: {
     phone: '+43 1 515 800',
-    email: 'concierge@curtaihotel.com',
+    email: 'concierge@grandhotelvienna.com',
     whatsapp: '+43 1 515 800',
   },
   policies: {
@@ -21,7 +21,7 @@ export const grandHotel: HotelConfig = {
     pets: 'Pets are not permitted.',
     smoking: 'The hotel is entirely non-smoking.',
   },
-  wifi: { ssid: 'CurtAIHotel_Guest', password: 'welcome2024' },
+  wifi: { ssid: 'GrandHotel_Guest', password: 'welcome2024' },
   responseRules: {
     formalAddress: true,
     avoidSuggestions: true,
@@ -44,18 +44,6 @@ export const grandHotel: HotelConfig = {
     detectLanguage: true,
     personalization: true,
     defaultLanguage: 'en',
-  },
-  languageTones: {
-    de: {
-      formalAddress: true,
-      style: 'formal',
-      hint: 'Always address the guest with "Sie". Use a professional, courteous hotel tone. Avoid casual expressions.',
-    },
-    en: {
-      formalAddress: false,
-      style: 'formal',
-      hint: 'Use a calm, professional concierge tone. Warm but not casual. Avoid overly familiar language.',
-    },
   },
   facilities: {
     pool: {
@@ -82,7 +70,7 @@ export const grandHotel: HotelConfig = {
   },
   dining: [
     {
-      name: 'The Curt Restaurant',
+      name: 'The Grand Restaurant',
       type: 'Fine dining',
       hours: 'Breakfast 07:00–10:30 | Dinner 18:30–22:30',
       dresscode: 'Smart casual required for dinner.',
@@ -193,18 +181,7 @@ export const grandHotel: HotelConfig = {
       { type: 'late_checkout', description: 'Late checkout until 14:00 subject to availability.', maxPerStay: 1 },
       { type: 'meal_credit', description: 'Credit of up to €30 toward dining.', maxPerStay: 1 },
     ],
-    humanHandoffMessage: {
-      de: 'Ich verbinde Sie kurz mit einem Kollegen vom Empfang.',
-      en: 'I will connect you with a member of our front desk team right away.',
-    },
+    humanHandoffMessage: 'I am connecting you with a member of our team now. They will be with you shortly.',
     staffContactMethod: 'whatsapp',
-  },
-  booking: {
-    sources: ['direct', 'airbnb', 'booking'],
-    paymentStatusAware: true,
-    documentSupport: {
-      menus: true,
-      invoices: true,
-    },
   },
 }
