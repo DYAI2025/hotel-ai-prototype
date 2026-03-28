@@ -16,7 +16,7 @@ export default async function HotelPage({ params }: Props) {
       <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-neutral-200 shadow-sm">
         <div>
           <p className="text-xs uppercase tracking-widest text-neutral-400 font-medium">
-            Curt AI Hotel (Prototype)
+            Concierge
           </p>
           <h1 className="text-lg font-semibold text-neutral-800 leading-tight">{hotel.name}</h1>
         </div>
