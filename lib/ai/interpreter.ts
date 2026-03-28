@@ -13,7 +13,7 @@ export type InterpretedMessage = {
 
 export function interpretMessage(
   message: string,
-  history: { role: string; content: string }[]
+  history: { role: 'user' | 'assistant'; content: string }[]
 ): InterpretedMessage {
   const lower = message.toLowerCase()
 
@@ -24,8 +24,9 @@ export function interpretMessage(
 
   const complaintTerms = ['problem', 'issue', 'broken', 'dirty', 'noise', 'cold', 'hot', 'wrong', 'disappointed', 'unacceptable', 'complaint', 'manager', 'terrible', 'awful', 'nicht funktioniert', 'kaputt', 'lärm']
   if (complaintTerms.some((t) => lower.includes(t))) {
+    const repeatedComplaintTerms = ['problem', 'issue', 'broken', 'dirty', 'noise', 'disappointed', 'unacceptable', 'complaint', 'terrible', 'awful', 'nicht funktioniert', 'kaputt', 'lärm']
     const isRepeated = history.some(
-      (m) => m.role === 'user' && complaintTerms.some((t) => m.content.toLowerCase().includes(t))
+      (m) => m.role === 'user' && repeatedComplaintTerms.some((t) => m.content.toLowerCase().includes(t))
     )
     const level = isRepeated ? 3 : lower.includes('manager') || lower.includes('unacceptable') ? 3 : 2
     return { intent: 'complaint', escalationLevel: level, detectedLanguage: detectLanguage(message) }

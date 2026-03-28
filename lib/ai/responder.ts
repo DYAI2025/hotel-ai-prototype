@@ -20,7 +20,7 @@ export async function getResponse(
     messages,
   })
 
-  const raw = response.content[0].type === 'text' ? response.content[0].text : ''
+  const raw = response.content[0]?.type === 'text' ? response.content[0].text : ''
   return cleanResponse(raw, rules)
 }
 
@@ -47,6 +47,7 @@ function cleanResponse(text: string, rules: ResponseRules): string {
       /\bevtl\.?\b/gi,
     ]
     hedges.forEach((re) => { cleaned = cleaned.replace(re, '') })
+    cleaned = cleaned.replace(/\s{2,}/g, ' ').trim()
   }
 
   const sentences = cleaned.match(/[^.!?]+[.!?]+/g) ?? [cleaned]

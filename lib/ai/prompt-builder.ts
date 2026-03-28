@@ -37,7 +37,7 @@ Smoking: ${hotel.policies.smoking}
 
 ## Facilities
 ${Object.entries(hotel.facilities)
-  .map(([key, f]) => `${key}: ${f.available ? `Open ${f.hours}. ${f.notes} ${f.responseHint}` : 'Not available.'}`)
+  .map(([key, f]) => `${key}: ${f.available ? `Open ${f.hours}. ${f.notes.trimEnd()} ${f.responseHint}` : 'Not available.'}`)
   .join('\n')}
 
 ## Dining
@@ -65,10 +65,14 @@ Local events today: ${context.localEvents.map((e) => e.name).join(', ') || 'None
 `
 
   const escalationNote =
-    escalation.level === 2 && escalation.gesture
-      ? `\n## Escalation Guidance\nThe guest has a complaint. You may offer the following goodwill gesture if appropriate: ${escalation.gesture}. Do not exceed this offer.`
-      : escalation.level === 3
+    escalation.level === 3
       ? `\n## Escalation Guidance\nThis situation requires human staff. Acknowledge the guest calmly and inform them that a team member will assist them shortly.`
+      : escalation.level === 2 && escalation.gesture
+      ? `\n## Escalation Guidance\nThe guest has a complaint. You may offer the following goodwill gesture if appropriate: ${escalation.gesture}. Do not exceed this offer.`
+      : escalation.level === 2
+      ? `\n## Escalation Guidance\nThe guest has raised a concern. Acknowledge it directly, apologise, and offer concrete assistance.`
+      : escalation.level === 1
+      ? `\n## Escalation Guidance\nThe guest has raised a concern. Acknowledge it warmly and offer to help resolve it.`
       : ''
 
   return [rules, knowledgeBase, realtimeContext, escalationNote].join('\n')

@@ -14,11 +14,21 @@ export function getProactiveMessage(
   const { proactive } = hotel
 
   if (!proactive.enabled || alreadySentToday) return null
+  // alreadySentToday enforces proactive.maxPerDay (caller tracks daily sends)
 
-  const [quietFrom] = proactive.quietHours.from.split(':').map(Number)
-  const [quietTo] = proactive.quietHours.to.split(':').map(Number)
-  const [currentHour] = context.localTime.split(':').map(Number)
-  if (currentHour >= quietFrom || currentHour < quietTo) return null
+  const [quietFromH, quietFromM = 0] = proactive.quietHours.from.split(':').map(Number)
+  const [quietToH, quietToM = 0] = proactive.quietHours.to.split(':').map(Number)
+  const [currentH, currentM = 0] = context.localTime.split(':').map(Number)
+  const currentMinutes = currentH * 60 + currentM
+  const fromMinutes = quietFromH * 60 + quietFromM
+  const toMinutes = quietToH * 60 + quietToM
+
+  const inQuietHours =
+    fromMinutes > toMinutes
+      ? currentMinutes >= fromMinutes || currentMinutes < toMinutes  // overnight window
+      : currentMinutes >= fromMinutes && currentMinutes < toMinutes  // same-day window
+
+  if (inQuietHours) return null
 
   if (proactive.triggers.weather && context.weather.recommendation) {
     return {

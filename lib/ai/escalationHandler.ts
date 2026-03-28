@@ -17,6 +17,13 @@ export function handleEscalation(
     }
   }
 
+  if (decision.level === 2 && !decision.gesture) {
+    return {
+      systemNote: 'LOG: Complaint at level 2 — no gesture available. Staff review recommended.',
+      appendToResponse: null,
+    }
+  }
+
   if (decision.level === 2 && decision.gesture) {
     return {
       systemNote: `LOG: Goodwill gesture offered — ${decision.gesture}`,
