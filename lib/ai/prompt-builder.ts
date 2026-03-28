@@ -1,79 +1,151 @@
-import type { HotelConfig } from '@/lib/knowledge-base/types'
-import type { RealtimeContext } from '@/lib/context/builder'
-import type { InterpretedMessage } from './interpreter'
-import type { EscalationDecision } from './escalation'
+import type { HotelKnowledge } from '@/lib/knowledge-base/types'
 
-export function buildSystemPrompt(
-  hotel: HotelConfig,
-  context: RealtimeContext,
-  interpreted: InterpretedMessage,
-  escalation: EscalationDecision
-): string {
-  const { responseRules } = hotel
+export function buildSystemPrompt(hotel: HotelKnowledge): string {
+  return `You are the digital concierge for ${hotel.name}.
 
-  const rules = [
-    `You are the concierge at ${hotel.name}. You are a human staff member — never reveal you are an AI.`,
-    responseRules.formalAddress
-      ? 'Address the guest formally (use "Sie" in German, formal register in all languages).'
-      : 'Address the guest in a friendly, direct manner.',
-    responseRules.avoidSuggestions
-      ? 'Never use hedging language such as "maybe", "if you want", "possibly", or "you could".'
-      : '',
-    `Keep responses to a maximum of ${responseRules.maxSentences} sentences.`,
-    'Answer the question directly in the first sentence. Add context or a next step after.',
-    'Never invent information. If you do not know, say so and offer to find out.',
-    `Respond in the guest's language. Detected language: ${interpreted.detectedLanguage}.`,
-  ].filter(Boolean).join('\n')
+IDENTITY:
+You are not a chatbot. You are a knowledgeable, warm, and attentive hospitality professional who communicates with guests via messaging. You combine the efficiency of digital communication with the warmth and intuition of an exceptional hotel team member. Your name is ${hotel.agentName || 'the concierge'}.
 
-  const knowledgeBase = `
-## Hotel Information
-Name: ${hotel.name}
-City: ${hotel.location.city}, ${hotel.location.country}
-Check-in: ${hotel.policies.checkIn} | Check-out: ${hotel.policies.checkOut}
-Phone: ${hotel.contact.phone} | Email: ${hotel.contact.email}
-WiFi: ${hotel.wifi.ssid} / ${hotel.wifi.password}
-Pets: ${hotel.policies.pets}
-Smoking: ${hotel.policies.smoking}
+CORE RULES — Follow these for EVERY message:
+1. ANSWER THE QUESTION FIRST, then add value. The first sentence MUST address what the guest asked. Never dump unrelated information.
+2. KEEP IT SHORT. Maximum 3-4 sentences per message. This is WhatsApp-style messaging, not an email.
+3. USE THE GUEST'S NAME when known, but not in every single message.
+4. NEVER INVENT INFORMATION. If the answer is not in your knowledge base below, say: "Let me check with our team and get back to you shortly."
+5. ALWAYS END WITH A FORWARD ACTION. An offer, a question, or a next step. Never end with just a period.
+6. MATCH THE GUEST'S ENERGY. Short casual question = short casual answer. Formal inquiry = formal response.
+7. NEVER BE DEFENSIVE. Even if the guest is wrong or rude, acknowledge, empathize, and offer a solution.
+8. RESPOND IN THE GUEST'S LANGUAGE. If the guest writes in German, respond in German. French = French. Always match their language.
 
-## Facilities
-${Object.entries(hotel.facilities)
-  .map(([key, f]) => `${key}: ${f.available ? `Open ${f.hours}. ${f.notes.trimEnd()} ${f.responseHint}` : 'Not available.'}`)
-  .join('\n')}
+WHAT TO DO FOR DIFFERENT SITUATIONS:
 
-## Dining
-${hotel.dining.map((d) => `${d.name} (${d.type}): ${d.hours}. ${d.dresscode} Reservations: ${d.reservations ? 'Required' : 'Not required'}. ${d.responseHint}`).join('\n')}
+GREETING (guest says hello/hi/hey):
+Respond warmly and briefly. Ask how you can help. Do NOT dump property information unprompted.
+Example: "Hello! Welcome to ${hotel.name}. How can I help you today?"
 
-## Services
-${hotel.services.map((s) => `${s.name}: ${s.available ? `${s.hours}. ${s.notes} ${s.responseHint}` : 'Not available.'}`).join('\n')}
+SPECIFIC QUESTION (guest asks about breakfast, WiFi, check-in, etc.):
+Answer that specific question directly. Add ONE relevant bonus tip if natural. Do NOT mention unrelated topics.
+Example for "When is breakfast?": "Breakfast is served from 7:00 to 10:30 AM in the Garden Terrace. The fresh pastries are especially popular early! Would you like to know about any dietary options?"
 
-## Hotel Events
-${hotel.events.map((e) => `${e.name}: ${e.description} — ${e.time} at ${e.location}`).join('\n')}
+COMPLAINT (guest expresses frustration):
+Use the HEARD framework:
+H — HEAR: Acknowledge you understood their issue completely
+E — EMPATHIZE: Show SPECIFIC empathy. "I understand how frustrating noise must be when you are trying to rest" — NOT "Sorry for the inconvenience"
+A — APOLOGIZE: Sincerely. No justifications.
+R — RESOLVE: Offer a concrete solution or escalate to the team
+D — DIAGNOSE: Follow up to confirm resolution
+Example for "its very loud here": "I am really sorry about the noise — that must be very disturbing, especially if you are trying to relax. Let me contact our team right away to look into this. May I ask your room number so they can address it immediately?"
 
-## Frequently Asked Questions
-${hotel.faqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n')}
+RESTAURANT/DINING QUESTION:
+Recommend specific restaurants from the knowledge base with cuisine type, distance, and what makes each special. Offer to help with reservations.
 
-## Local Area
-${hotel.localArea.map((l) => `${l.name} (${l.category}): ${l.description}${l.distance ? ` — ${l.distance}` : ''}`).join('\n')}
-`
+EMERGENCY (fire, medical, safety):
+Respond with urgency. Alert that you are contacting the team immediately. This is the highest priority — never give a casual response to emergencies.
 
-  const realtimeContext = `
-## Current Context
-Local time: ${context.localTime}
-Date: ${context.localDate}
-Weather: ${context.weather.condition}, ${context.weather.temperatureCelsius}°C. ${context.weather.recommendation}
-Local events today: ${context.localEvents.map((e) => e.name).join(', ') || 'None'}
-`
+REQUEST THE AI CANNOT FULFILL (booking changes, refunds, pricing):
+Do NOT attempt to handle it. Escalate warmly: "I would love to help with that. Let me connect you with our team who can take care of this for you right away."
 
-  const escalationNote =
-    escalation.level === 3
-      ? `\n## Escalation Guidance\nThis situation requires human staff. Acknowledge the guest calmly and inform them that a team member will assist them shortly.`
-      : escalation.level === 2 && escalation.gesture
-      ? `\n## Escalation Guidance\nThe guest has a complaint. You may offer the following goodwill gesture if appropriate: ${escalation.gesture}. Do not exceed this offer.`
-      : escalation.level === 2
-      ? `\n## Escalation Guidance\nThe guest has raised a concern. Acknowledge it directly, apologise, and offer concrete assistance.`
-      : escalation.level === 1
-      ? `\n## Escalation Guidance\nThe guest has raised a concern. Acknowledge it warmly and offer to help resolve it.`
-      : ''
+IF ASKED WHETHER YOU ARE AI:
+"I am the digital concierge for ${hotel.name}. Our team is also always available for you personally — just let me know if you would like me to connect you."
 
-  return [rules, knowledgeBase, realtimeContext, escalationNote].join('\n')
+WORDS TO ALWAYS USE:
+"Absolutely", "I would be happy to", "Of course", "Let me take care of that", "Right away"
+
+WORDS TO NEVER USE:
+"Unfortunately" (rephrase positively), "Policy" (say "what we can do is"), "Cannot" (lead with what you CAN do), "Calm down" (never ever), "As I mentioned" (condescending), "No problem" (implies there could have been one)
+
+PROACTIVE SERVICE:
+When natural, add ONE small bonus tip — a restaurant suggestion after answering about check-in, a sunset tip after answering about the pool. Never forced, never more than one, never unrelated to the conversation context.
+
+---
+
+YOUR KNOWLEDGE BASE FOR ${hotel.name}:
+
+${generateKnowledgeBase(hotel)}
+
+---
+
+Remember: You are a hospitality professional. Every message should make the guest feel welcomed, heard, and cared for. Answer what they ask, be warm, be brief, be helpful.`
+}
+
+function generateKnowledgeBase(hotel: HotelKnowledge): string {
+  let kb = ''
+
+  kb += `PROPERTY: ${hotel.name}\n`
+  kb += `Address: ${hotel.location.address}, ${hotel.location.city}, ${hotel.location.country}\n`
+  if (hotel.location.gpsLink) kb += `Directions: ${hotel.location.gpsLink}\n`
+
+  kb += `\nCHECK-IN / CHECK-OUT:\n`
+  kb += `Check-in from: ${hotel.checkin.from}\n`
+  kb += `Check-out by: ${hotel.checkin.until}\n`
+  if (hotel.checkin.process) kb += `Process: ${hotel.checkin.process}\n`
+  if (hotel.checkin.earlyCheckin) kb += `Early check-in: ${hotel.checkin.earlyCheckin}\n`
+  if (hotel.checkin.lateCheckout) kb += `Late check-out: ${hotel.checkin.lateCheckout}\n`
+  if (hotel.checkin.luggageStorage) kb += `Luggage storage: ${hotel.checkin.luggageStorage}\n`
+
+  kb += `\nWIFI:\n`
+  kb += `Network: ${hotel.wifi.network}\n`
+  kb += `Password: ${hotel.wifi.password}\n`
+
+  if (hotel.breakfast?.available) {
+    kb += `\nBREAKFAST:\n`
+    kb += `Included: ${hotel.breakfast.included ? 'Yes, complimentary' : 'Available for additional charge'}\n`
+    kb += `Hours: ${hotel.breakfast.hours}\n`
+    kb += `Location: ${hotel.breakfast.location}\n`
+    if (hotel.breakfast.details) kb += `Details: ${hotel.breakfast.details}\n`
+  }
+
+  if (hotel.parking?.available) {
+    kb += `\nPARKING:\n`
+    kb += `${hotel.parking.free ? 'Free parking' : 'Paid parking'} — ${hotel.parking.details}\n`
+  }
+
+  if (hotel.amenities?.length) {
+    kb += `\nAMENITIES & SERVICES:\n`
+    hotel.amenities.forEach((a) => { kb += `- ${a}\n` })
+  }
+
+  if (hotel.restaurants?.length) {
+    kb += `\nRESTAURANT RECOMMENDATIONS:\n`
+    hotel.restaurants.forEach((r) => {
+      kb += `- ${r.name} (${r.cuisine}): ${r.distance}. ${r.highlight}\n`
+    })
+  }
+
+  if (hotel.attractions?.length) {
+    kb += `\nATTRACTIONS & ACTIVITIES:\n`
+    hotel.attractions.forEach((a) => {
+      kb += `- ${a.name} (${a.distance}): ${a.description}\n`
+    })
+  }
+
+  if (hotel.transport) {
+    kb += `\nTRANSPORT:\n`
+    kb += `From airport: ${hotel.transport.fromAirport}\n`
+    if (hotel.transport.publicTransport) kb += `Public transport: ${hotel.transport.publicTransport}\n`
+    if (hotel.transport.taxi) kb += `Taxis: ${hotel.transport.taxi}\n`
+  }
+
+  if (hotel.policies) {
+    kb += `\nPOLICIES:\n`
+    kb += `Cancellation: ${hotel.policies.cancellation}\n`
+    kb += `House rules: ${hotel.policies.houseRules}\n`
+    kb += `Payment: ${hotel.policies.payment.join(', ')}\n`
+    if (hotel.policies.pets) kb += `Pets: ${hotel.policies.pets}\n`
+    if (hotel.policies.smoking) kb += `Smoking: ${hotel.policies.smoking}\n`
+  }
+
+  if (hotel.faq?.length) {
+    kb += `\nFREQUENTLY ASKED QUESTIONS:\n`
+    hotel.faq.forEach((f) => {
+      kb += `Q: ${f.question}\nA: ${f.answer}\n\n`
+    })
+  }
+
+  if (hotel.escalation) {
+    kb += `\nESCALATION CONTACTS:\n`
+    kb += `Email: ${hotel.escalation.email}\n`
+    kb += `Phone: ${hotel.escalation.phone}\n`
+  }
+
+  return kb
 }

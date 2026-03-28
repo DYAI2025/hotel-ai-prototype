@@ -94,6 +94,73 @@ export type EscalationConfig = {
   staffContactMethod: string
 }
 
+export type HotelKnowledge = {
+  name: string
+  agentName?: string
+  location: {
+    address: string
+    city: string
+    country: string
+    gpsLink?: string
+  }
+  checkin: {
+    from: string
+    until: string
+    process?: string
+    earlyCheckin?: string
+    lateCheckout?: string
+    luggageStorage?: string
+  }
+  wifi: {
+    network: string
+    password: string
+  }
+  breakfast?: {
+    available: boolean
+    included: boolean
+    hours: string
+    location: string
+    details?: string
+  }
+  parking?: {
+    available: boolean
+    free: boolean
+    details: string
+  }
+  amenities?: string[]
+  restaurants?: {
+    name: string
+    cuisine: string
+    distance: string
+    highlight: string
+  }[]
+  attractions?: {
+    name: string
+    distance: string
+    description: string
+  }[]
+  transport?: {
+    fromAirport: string
+    publicTransport?: string
+    taxi?: string
+  }
+  policies?: {
+    cancellation: string
+    houseRules: string
+    payment: string[]
+    pets?: string
+    smoking?: string
+  }
+  faq?: {
+    question: string
+    answer: string
+  }[]
+  escalation?: {
+    email: string
+    phone: string
+  }
+}
+
 export type HotelConfig = {
   id: string
   name: string

@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loadHotelConfig } from '@/lib/knowledge-base/loader'
-import { buildContext } from '@/lib/context/builder'
-import { interpretMessage } from '@/lib/ai/interpreter'
-import { decideEscalation } from '@/lib/ai/escalation'
+import { toHotelKnowledge } from '@/lib/knowledge-base/mapper'
 import { buildSystemPrompt } from '@/lib/ai/prompt-builder'
-import { handleEscalation } from '@/lib/ai/escalationHandler'
 import { getResponse } from '@/lib/ai/responder'
 
 export type ChatMessage = {
@@ -20,9 +17,6 @@ export type ChatRequest = {
 
 export type ChatResponse = {
   reply: string
-  escalationLevel: number
-  handoff: boolean
-  systemNote: string | null
 }
 
 export async function POST(req: NextRequest) {
@@ -39,40 +33,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing hotelId or message' }, { status: 400 })
   }
 
-  let hotel
+  let hotelConfig
   try {
-    hotel = loadHotelConfig(hotelId)
+    hotelConfig = loadHotelConfig(hotelId)
   } catch {
     return NextResponse.json({ error: 'Hotel not found' }, { status: 404 })
   }
 
-  const context = buildContext(hotel)
-  const interpreted = interpretMessage(message, history ?? [])
-  const escalation = decideEscalation(interpreted, hotel)
-  const systemPrompt = buildSystemPrompt(hotel, context, interpreted, escalation)
-  const escalationAction = handleEscalation(escalation, hotel)
-
+  const hotel = toHotelKnowledge(hotelConfig)
+  const systemPrompt = buildSystemPrompt(hotel)
   const messages: ChatMessage[] = [...(history ?? []), { role: 'user', content: message }]
 
-  let aiReply: string
+  let reply: string
   try {
-    aiReply = await getResponse(systemPrompt, messages, hotel.responseRules)
+    reply = await getResponse(systemPrompt, messages, hotelConfig.responseRules)
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    console.error('[chat/route] Anthropic error:', message)
-    return NextResponse.json({ error: 'AI service error', detail: message }, { status: 502 })
+    const detail = err instanceof Error ? err.message : String(err)
+    console.error('[chat/route] Anthropic error:', detail)
+    return NextResponse.json({ error: 'AI service error', detail }, { status: 502 })
   }
 
-  const reply = escalationAction.appendToResponse
-    ? `${aiReply}\n\n${escalationAction.appendToResponse}`
-    : aiReply
-
-  const response: ChatResponse = {
-    reply,
-    escalationLevel: escalation.level,
-    handoff: escalation.handoff,
-    systemNote: escalationAction.systemNote,
-  }
-
-  return NextResponse.json(response)
+  return NextResponse.json({ reply } satisfies ChatResponse)
 }

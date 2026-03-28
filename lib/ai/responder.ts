@@ -8,15 +8,58 @@ export type Message = {
   content: string
 }
 
-// Mock responses used as fallback when API credits are unavailable
-const MOCK_RESPONSES: Record<string, string> = {
-  info_request: 'Check-in is from 15:00, check-out by 12:00. Our WiFi network is GrandHotel_Guest — password welcome2024. The pool and gym are on level B1 and open daily. Is there anything else I can assist you with?',
-  service_request: 'Understood. I will arrange that for you immediately. Our concierge team is available 24 hours and will confirm the details with you shortly.',
-  complaint: 'I sincerely apologise for the inconvenience. This is not the standard we hold ourselves to. I am escalating this to our team now and we will resolve it as a priority.',
-  smalltalk: 'Good day. Welcome to Grand Hotel Vienna. How may I be of assistance during your stay?',
-  emergency: 'Please stay calm. I am alerting our team immediately. A staff member will be with you within moments.',
-  default: 'Thank you for your message. I am happy to assist. Could you provide a little more detail so I can give you the most accurate information?',
-}
+// Mock responses used as fallback when API credits are unavailable.
+// Keyed by keyword patterns for contextual matching.
+const MOCK_RULES: { keywords: string[]; response: string }[] = [
+  {
+    keywords: ['fire', 'emergency', 'medical', 'police', 'feuer', 'hilfe', 'notfall', 'danger'],
+    response: 'Please stay calm — I am alerting our team immediately. A staff member will be with you within moments.',
+  },
+  {
+    keywords: ['loud', 'noise', 'noisy', 'problem', 'broken', 'dirty', 'terrible', 'awful', 'disappointed', 'lärm', 'kaputt'],
+    response: 'I am truly sorry to hear this — that is not the experience we want for you. I am contacting our team right away to address this. May I ask your room number so we can assist you immediately?',
+  },
+  {
+    keywords: ['breakfast', 'frühstück'],
+    response: 'Breakfast is served from 07:00 to 10:30 in The Grand Restaurant. It is available for an additional charge. Would you like me to reserve a table for you?',
+  },
+  {
+    keywords: ['check-in', 'checkin', 'check in', 'ankunft', 'arrive', 'arrival'],
+    response: 'Check-in is from 15:00. Should you arrive earlier, we are happy to store your luggage so you can enjoy the hotel. Is there anything else I can assist you with?',
+  },
+  {
+    keywords: ['check-out', 'checkout', 'check out', 'abreise', 'depart'],
+    response: 'Check-out is by 12:00. A late check-out until 14:00 is available subject to availability — shall I arrange that for you?',
+  },
+  {
+    keywords: ['wifi', 'wlan', 'internet', 'password', 'passwort', 'network'],
+    response: 'Our WiFi network is GrandHotel_Guest and the password is welcome2024. You are connected throughout the hotel. Is there anything else I can help with?',
+  },
+  {
+    keywords: ['dinner', 'restaurant', 'dining', 'eat', 'lunch', 'food', 'table', 'reserve', 'abendessen', 'essen'],
+    response: 'The Grand Restaurant serves dinner from 18:30 to 22:30 — smart casual dress is required and reservations are recommended. Our Lobby Bar is open from 11:00 with live piano from 20:00. Shall I reserve a table for you?',
+  },
+  {
+    keywords: ['pool', 'gym', 'spa', 'fitness', 'schwimm'],
+    response: 'Our heated indoor pool and fully equipped gym are both on level B1. The pool is open 07:00–22:00, the gym 06:00–23:00. The spa is open 09:00–21:00 and advance booking is recommended for treatments. Anything else?',
+  },
+  {
+    keywords: ['parking', 'parken', 'car', 'auto'],
+    response: 'Valet parking is available at €35 per night. Please let our concierge know upon arrival and they will take care of everything. Is there anything else I can help with?',
+  },
+  {
+    keywords: ['book', 'change', 'cancel', 'refund', 'buchen', 'stornieren', 'umbuchung'],
+    response: 'I would love to help with that. Booking changes and cancellations are handled directly by our reservations team — let me connect you with them right away so they can take care of it.',
+  },
+  {
+    keywords: ['hello', 'hi', 'hey', 'good morning', 'good evening', 'hallo', 'guten morgen', 'guten abend', 'guten tag', 'grüß'],
+    response: 'Good day! Welcome to Grand Hotel Vienna. How may I assist you today?',
+  },
+  {
+    keywords: ['thanks', 'thank you', 'danke', 'merci', 'gracias'],
+    response: 'Absolutely — it is my pleasure. Is there anything else I can do for you?',
+  },
+]
 
 export async function getResponse(
   systemPrompt: string,
@@ -36,21 +79,20 @@ export async function getResponse(
     const msg = err instanceof Error ? err.message : String(err)
     if (msg.includes('credit balance') || msg.includes('billing')) {
       const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user')?.content ?? ''
-      const intentKey = detectMockIntent(lastUserMessage)
-      console.warn('[responder] API credits unavailable — serving mock response for intent:', intentKey)
-      return MOCK_RESPONSES[intentKey]
+      const mockResponse = resolveMockResponse(lastUserMessage)
+      console.warn('[responder] API credits unavailable — serving mock response')
+      return mockResponse
     }
     throw err
   }
 }
 
-function detectMockIntent(message: string): keyof typeof MOCK_RESPONSES {
+function resolveMockResponse(message: string): string {
   const lower = message.toLowerCase()
-  if (['fire', 'help', 'emergency', 'medical', 'feuer', 'hilfe', 'notfall'].some((t) => lower.includes(t))) return 'emergency'
-  if (['problem', 'broken', 'dirty', 'noise', 'complaint', 'terrible', 'kaputt', 'lärm'].some((t) => lower.includes(t))) return 'complaint'
-  if (['book', 'reserve', 'order', 'need', 'send', 'bring', 'buchen', 'brauche'].some((t) => lower.includes(t))) return 'service_request'
-  if (['hello', 'hi', 'hey', 'thanks', 'bye', 'hallo', 'danke', 'guten'].some((t) => lower.includes(t))) return 'smalltalk'
-  return 'info_request'
+  for (const rule of MOCK_RULES) {
+    if (rule.keywords.some((kw) => lower.includes(kw))) return rule.response
+  }
+  return 'Thank you for your message. Let me check with our team and get back to you shortly. Is there anything else I can assist you with in the meantime?'
 }
 
 function cleanResponse(text: string, rules: ResponseRules): string {
