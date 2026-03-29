@@ -122,30 +122,92 @@ export const grandHotel: HotelConfig = {
     {
       category: 'attraction',
       name: 'Kunsthistorisches Museum',
-      description: 'World-class art museum, 10 minutes on foot.',
+      description: 'World-class art and antiquities museum in a stunning imperial building. One of the finest in Europe.',
       distance: '800m',
+    },
+    {
+      category: 'attraction',
+      name: 'Belvedere Palace & Gardens',
+      description: 'Baroque palace complex with Klimt\'s The Kiss and beautiful formal gardens. Not to be missed.',
+      distance: '1.5km',
+    },
+    {
+      category: 'attraction',
+      name: 'Vienna State Opera',
+      description: 'One of the world\'s leading opera houses. Standing tickets available from €3 on performance nights.',
+      distance: '600m',
+    },
+    {
+      category: 'restaurant',
+      name: 'Café Central',
+      description: 'Vienna\'s most iconic coffeehouse, opened in 1876. Famous for Melange coffee and Apfelstrudel.',
+      distance: '700m',
+    },
+    {
+      category: 'restaurant',
+      name: 'Figlmüller Bäckerstraße',
+      description: 'Legendary Viennese restaurant famous for its enormous, perfectly breaded Wiener Schnitzel. Book ahead.',
+      distance: '1.0km',
+    },
+    {
+      category: 'restaurant',
+      name: 'Steirereck im Stadtpark',
+      description: 'Austria\'s best restaurant — two Michelin stars, modern Alpine cuisine in a beautiful park setting.',
+      distance: '2.0km',
     },
     {
       category: 'transport',
       name: 'U-Bahn Karlsplatz',
-      description: 'Nearest metro station, lines U1, U2, U4.',
+      description: 'Nearest metro station, lines U1, U2, U4. Direct connections across the entire city.',
       distance: '400m',
+    },
+    {
+      category: 'transport',
+      name: 'Airport to Hotel',
+      description: 'City Airport Train (CAT) runs every 30 minutes from Vienna Airport to Wien Mitte (16 min). Taxi takes 25–35 min, approx. €40.',
+      distance: '18km from airport',
     },
     {
       category: 'tip',
       name: 'Naschmarkt',
-      description: "Vienna's most famous open-air market. Open Mon–Sat from 06:00.",
+      description: "Vienna's most famous open-air market with 120 stalls of fresh produce, spices, meats, cheeses, and street food. Open Mon–Sat from 06:00.",
       distance: '1.2km',
+    },
+    {
+      category: 'tip',
+      name: 'Prater & Riesenrad',
+      description: 'The historic giant Ferris wheel and green parkland — perfect for an afternoon walk or a classic Viennese evening out.',
+      distance: '3.5km',
     },
   ],
   faqs: [
     {
       question: 'Is parking available?',
-      answer: 'Valet parking is available at €35 per night. Please inform the concierge upon arrival.',
+      answer: 'Valet parking is available at €35 per night. Please inform the concierge upon arrival and our team will take care of your vehicle.',
     },
     {
       question: 'What is the check-in time?',
-      answer: 'Check-in is from 15:00. Early check-in is subject to availability and can be requested at the front desk.',
+      answer: 'Check-in is from 15:00. Early check-in is subject to availability — please request it when you arrive and we will do our best. Luggage storage is always available from arrival.',
+    },
+    {
+      question: 'What is included in the room rate?',
+      answer: 'The room rate includes complimentary WiFi, access to the fitness centre and pool, and 24-hour concierge service. Breakfast is available at an additional charge.',
+    },
+    {
+      question: 'Is there a spa?',
+      answer: 'Yes, our spa is on level B1 and open 09:00–21:00. Treatments require advance booking. Suite guests enjoy complimentary spa access during their stay.',
+    },
+    {
+      question: 'Can you help arrange tours or theatre tickets?',
+      answer: 'Absolutely — our concierge team can arrange city tours, opera and theatre tickets, restaurant reservations, and private transfers. Just let us know what you have in mind.',
+    },
+    {
+      question: 'What is the cancellation policy?',
+      answer: 'Cancellations are free of charge up to 24 hours before your arrival date. Late cancellations or no-shows are charged one night\'s room rate.',
+    },
+    {
+      question: 'Is the hotel pet-friendly?',
+      answer: 'We do not accommodate pets at the hotel. We are happy to recommend pet-friendly accommodation nearby if needed.',
     },
   ],
   tone: { style: 'formal', language: 'auto' },

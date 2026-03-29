@@ -97,6 +97,7 @@ export type EscalationConfig = {
 export type HotelKnowledge = {
   name: string
   agentName?: string
+  tone?: 'formal' | 'warm' | 'casual'
   location: {
     address: string
     city: string

@@ -149,7 +149,7 @@ export default function ChatInterface({ hotelId, hotelName }: Props) {
           </button>
         </div>
         <p className="text-center text-xs text-neutral-400 mt-2">
-          Curt AI Hotel (Prototype) — {hotelName}
+          {hotelName} — Digital Concierge
         </p>
       </div>
     </div>
