@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test lib/api/__tests__/chat.test.ts lib/__tests__/post-processor.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",

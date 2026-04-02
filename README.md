@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hotel AI Prototype
 
-## Getting Started
+Next.js prototype for a hotel concierge assistant with a domain-specific knowledge base, response post-processing, and escalation detection.
 
-First, run the development server:
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Core architecture (where CI/CD protection is most important)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The following areas are sensitive and therefore covered by automated checks:
 
-## Learn More
+1. **Request parsing and validation** (`lib/api/chat.ts`)  
+   Invalid payloads must fail fast with clear error codes.
+2. **Knowledge base loading** (`lib/knowledge-base/loader.ts`)  
+   Wrong hotel IDs must fail deterministically so routing and prompts stay reliable.
+3. **AI response post-processing** (`lib/post-processor.ts`)  
+   Metadata extraction (`[META: ...]`) drives escalation/handoff logic and must stay stable.
+4. **API error boundaries** (`app/api/chat/route.ts`)  
+   All failures now return structured errors (`code`, `requestId`, optional `detail`) so incidents are traceable.
 
-To learn more about Next.js, take a look at the following resources:
+## Tests and local quality checks
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run typecheck
+npm run test
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `typecheck`: verifies TypeScript integrity for the complete app.
+- `test`: runs deterministic Node test cases for core parsing, loader reliability, and metadata handling.
 
-## Deploy on Vercel
+## CI/CD automation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+GitHub Actions workflow: `.github/workflows/ci.yml`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Pipeline steps:
+1. install dependencies (`npm ci`)
+2. static check (`npm run typecheck`)
+3. core regression tests (`npm run test`)
+
+This guarantees that merges only pass when core concierge functionality remains intact.
+
+## Error handling approach
+
+### Goals
+- **Clear user-facing failures** (useful message)
+- **Stable machine-readable diagnostics** (`code`)
+- **Developer traceability** (`requestId` + optional `detail`)
+
+### Current behavior
+- Input validation throws typed `ChatApiError` with:
+  - HTTP status
+  - error code
+  - message
+  - field-level details (when available)
+- API route maps all known failures to structured JSON responses.
+- Upstream AI failures include a request-scoped id to make logs and client reports correlate quickly.
+
+## Maintainability notes
+
+To keep the project maintainable over time:
+
+- Keep business rules in small pure modules (`lib/...`) and test them directly.
+- Keep route handlers thin (orchestration only).
+- Add tests for every bugfix in parsing, mapping, or escalation logic.
+- Prefer explicit error codes over ambiguous generic messages.
+
