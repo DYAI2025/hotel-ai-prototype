@@ -32,13 +32,23 @@ export function takeRateLimit(key: string, limit: number, windowMs: number): Rat
 }
 
 export function getClientIp(headers: Headers): string {
-  const forwarded = headers.get('x-forwarded-for')
-  if (forwarded) {
-    return forwarded.split(',')[0].trim()
+  // Prefer a trusted real IP header when available (typically set by a proxy)
+  const realIp = headers.get('x-real-ip') ?? headers.get('X-Real-IP')
+  if (realIp && realIp.trim()) {
+    return realIp.trim()
   }
 
-  const realIp = headers.get('x-real-ip')
-  if (realIp) return realIp.trim()
+  // Fall back to the first value in x-forwarded-for (may be spoofable if not sanitized by infra)
+  const forwarded = headers.get('x-forwarded-for') ?? headers.get('X-Forwarded-For')
+  if (forwarded) {
+    const first = forwarded.split(',')[0].trim()
+    if (first) {
+      return first
+    }
+  }
 
-  return 'unknown'
+  // As a last resort, avoid a shared constant like 'unknown' which would group all such
+  // requests into the same rate-limit bucket. Instead, generate a pseudo-unique identifier
+  // so that these requests do not interfere with each other's buckets.
+  return `anon-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
