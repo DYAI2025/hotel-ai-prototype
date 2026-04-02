@@ -4,31 +4,32 @@ import { loadHotelConfig } from '@/lib/knowledge-base/loader'
 import { toHotelKnowledge } from '@/lib/knowledge-base/mapper'
 import { buildSystemPrompt } from '@/lib/system-prompt'
 import { postProcess } from '@/lib/post-processor'
+import { ChatApiError, parseChatRequestBody, type ChatMessage } from '@/lib/api/chat'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-export type ChatMessage = {
-  role: 'user' | 'assistant'
-  content: string
-}
-
 export async function POST(req: NextRequest) {
+  const requestId = crypto.randomUUID()
   let hotelId: string, message: string, history: ChatMessage[], guestContext: { name: string; room?: string; stayNights?: number } | undefined
   try {
-    ;({ hotelId, message, history, guestContext } = await req.json())
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
-
-  if (!hotelId || !message) {
-    return NextResponse.json({ error: 'Missing hotelId or message' }, { status: 400 })
+    const body = await req.json()
+    ;({ hotelId, message, history, guestContext } = parseChatRequestBody(body))
+  } catch (err) {
+    if (err instanceof ChatApiError) {
+      return NextResponse.json(
+        { error: err.message, code: err.code, details: err.details, requestId },
+        { status: err.status }
+      )
+    }
+    return NextResponse.json({ error: 'Invalid JSON payload.', code: 'INVALID_JSON', requestId }, { status: 400 })
   }
 
   let hotelConfig
   try {
     hotelConfig = loadHotelConfig(hotelId)
-  } catch {
-    return NextResponse.json({ error: 'Hotel not found' }, { status: 404 })
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: 'Hotel not found.', code: 'HOTEL_NOT_FOUND', detail, requestId }, { status: 404 })
   }
 
   const hotel = toHotelKnowledge(hotelConfig)
@@ -53,12 +54,12 @@ export async function POST(req: NextRequest) {
       .join('')
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err)
-    console.error('[chat/route] Anthropic error:', detail)
-    return NextResponse.json({ error: 'AI service error', detail }, { status: 502 })
+    console.error(`[chat/route] Anthropic error (${requestId}):`, detail)
+    return NextResponse.json({ error: 'AI service error.', code: 'AI_SERVICE_ERROR', detail, requestId }, { status: 502 })
   }
 
   if (!rawText) {
-    return NextResponse.json({ error: 'Empty response from AI' }, { status: 502 })
+    return NextResponse.json({ error: 'Empty response from AI.', code: 'EMPTY_AI_RESPONSE', requestId }, { status: 502 })
   }
 
   const { cleanText, metadata } = postProcess(rawText)
