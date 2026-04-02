@@ -42,11 +42,7 @@ export async function POST(req: NextRequest) {
   const interpreted = interpretMessage(message, history ?? [])
   const escalationDecision = decideEscalation(interpreted, hotelConfig)
   const escalationAction = handleEscalation(escalationDecision, hotelConfig)
-  const proactiveMessage = getProactiveMessage(hotelConfig, context, false)
   const systemPrompt = buildSystemPrompt(hotel, guestContext)
-
-  const hotelKnowledge = toHotelKnowledge(hotelConfig)
-  const systemPrompt = buildSystemPrompt(hotelKnowledge, guestContext)
 
   const messages: ChatMessage[] = [...history, { role: 'user', content: message }]
 
