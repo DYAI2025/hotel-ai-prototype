@@ -45,10 +45,10 @@ export async function POST(req: NextRequest) {
   const proactiveMessage = getProactiveMessage(hotelConfig, context, false)
   const systemPrompt = buildSystemPrompt(hotel, guestContext)
 
-  const messages = [
-    ...(history ?? []).map((h) => ({ role: h.role, content: h.content })),
-    { role: 'user' as const, content: message },
-  ]
+  const hotelKnowledge = toHotelKnowledge(hotelConfig)
+  const systemPrompt = buildSystemPrompt(hotelKnowledge, guestContext)
+
+  const messages: ChatMessage[] = [...history, { role: 'user', content: message }]
 
   let rawText: string
   try {
@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
       system: systemPrompt,
       messages,
     })
+
     rawText = response.content
       .filter((b): b is Anthropic.TextBlock => b.type === 'text')
       .map((b) => b.text)
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { cleanText, metadata } = postProcess(rawText)
+  const proactiveMessage = getProactiveMessage(hotelConfig, context, false)
 
   const escalationLevelMap: Record<string, number> = { none: 0, low: 1, high: 2, critical: 3 }
   const modelEscalationLevel = escalationLevelMap[metadata.escalation] ?? 0

@@ -2,6 +2,7 @@ import { getHotelConfig } from '@/lib/hotels'
 import { notFound } from 'next/navigation'
 import { simulatedBooking } from '@/lib/simulation/booking'
 import GuestJourney from './GuestJourney'
+import { createChatToken } from '@/lib/security/chat-token'
 
 type Props = {
   params: Promise<{ hotelId: string }>
@@ -11,6 +12,7 @@ export default async function HotelPage({ params }: Props) {
   const { hotelId } = await params
   const hotel = getHotelConfig(hotelId)
   if (!hotel) notFound()
+  const chatToken = createChatToken(hotelId)
 
   const sportFacilities = Object.entries(hotel.facilities)
     .filter(([, f]) => f.available)
@@ -35,6 +37,7 @@ export default async function HotelPage({ params }: Props) {
         localArea={hotel.localArea}
         events={hotel.events}
         sportFacilities={sportFacilities}
+        chatToken={chatToken}
       />
     </main>
   )
