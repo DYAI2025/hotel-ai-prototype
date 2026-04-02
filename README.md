@@ -1,39 +1,72 @@
-# Hotel AI Concierge Prototype
+# Hotel AI Prototype
 
-Next.js + TypeScript prototype for a hotel concierge experience with AI-powered responses, deterministic escalation logic, and per-hotel configuration.
+Next.js prototype for a hotel concierge assistant with a domain-specific knowledge base, response post-processing, and escalation detection.
 
-## Quick start
+## Getting started
 
 ```bash
 npm install
-cp .env.example .env.local  # or set env vars directly
 npm run dev
 ```
 
 Open `http://localhost:3000`.
 
-## Required environment variables
+## Core architecture (where CI/CD protection is most important)
 
-- `ANTHROPIC_API_KEY` — Anthropic API key for `/api/chat`
-- `CHAT_TOKEN_SECRET` — HMAC secret used to sign/verify chat session tokens (minimum 16 chars)
+The following areas are sensitive and therefore covered by automated checks:
 
-Optional (for Supabase integration paths):
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+1. **Request parsing and validation** (`lib/api/chat.ts`)  
+   Invalid payloads must fail fast with clear error codes.
+2. **Knowledge base loading** (`lib/knowledge-base/loader.ts`)  
+   Wrong hotel IDs must fail deterministically so routing and prompts stay reliable.
+3. **AI response post-processing** (`lib/post-processor.ts`)  
+   Metadata extraction (`[META: ...]`) drives escalation/handoff logic and must stay stable.
+4. **API error boundaries** (`app/api/chat/route.ts`)  
+   All failures now return structured errors (`code`, `requestId`, optional `detail`) so incidents are traceable.
 
-## Quality checks
+## Tests and local quality checks
 
 ```bash
-npx tsc --noEmit
-CHAT_TOKEN_SECRET=dev_super_secret_key_123 npm run build
+npm run typecheck
+npm run test
 ```
 
-## Architecture (high level)
+- `typecheck`: verifies TypeScript integrity for the complete app.
+- `test`: runs deterministic Node test cases for core parsing, loader reliability, and metadata handling.
 
-- `app/hotel/[hotelId]/*` — guest journey + chat UI
-- `app/api/chat/route.ts` — secure chat orchestration endpoint
-- `lib/knowledge-base/*` — typed hotel data + mapping
-- `lib/ai/*` — interpretation, escalation decisions, proactive messaging
-- `lib/security/*` — chat token verification + rate limiting
-- `supabase/migrations/*` — database schema (future persistence expansion)
+## CI/CD automation
+
+GitHub Actions workflow: `.github/workflows/ci.yml`
+
+Pipeline steps:
+1. install dependencies (`npm ci`)
+2. static check (`npm run typecheck`)
+3. core regression tests (`npm run test`)
+
+This guarantees that merges only pass when core concierge functionality remains intact.
+
+## Error handling approach
+
+### Goals
+- **Clear user-facing failures** (useful message)
+- **Stable machine-readable diagnostics** (`code`)
+- **Developer traceability** (`requestId` + optional `detail`)
+
+### Current behavior
+- Input validation throws typed `ChatApiError` with:
+  - HTTP status
+  - error code
+  - message
+  - field-level details (when available)
+- API route maps all known failures to structured JSON responses.
+- Upstream AI failures include a request-scoped id to make logs and client reports correlate quickly.
+
+## Maintainability notes
+
+To keep the project maintainable over time:
+
+- Keep business rules in small pure modules (`lib/...`) and test them directly.
+- Keep route handlers thin (orchestration only).
+- Add tests for every bugfix in parsing, mapping, or escalation logic.
+- Prefer explicit error codes over ambiguous generic messages.
+

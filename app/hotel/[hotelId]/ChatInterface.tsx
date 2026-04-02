@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import type { ChatMessage } from '@/app/api/chat/route'
+import type { ChatMessage } from '@/lib/api/chat'
 
 type Props = {
   hotelId: string
@@ -61,11 +61,13 @@ export default function ChatInterface({ hotelId, hotelName, guestName, roomNumbe
         }),
       })
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`)
-      }
-
       const data = await res.json()
+      if (!res.ok) {
+        const errorCode = data?.code ?? 'UNKNOWN_ERROR'
+        const requestId = data?.requestId ? ` (Request ID: ${data.requestId})` : ''
+        const detail = data?.detail ? ` ${data.detail}` : ''
+        throw new Error(`${errorCode}${requestId}.${detail}`.trim())
+      }
 
       setMessages((prev) => [
         ...prev,
@@ -76,12 +78,13 @@ export default function ChatInterface({ hotelId, hotelName, guestName, roomNumbe
           handoff: data.handoff,
         },
       ])
-    } catch {
+    } catch (error) {
+      const detail = error instanceof Error ? ` Details: ${error.message}` : ''
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: 'I apologise — there was a technical issue. Please try again or contact the front desk.',
+          content: `I apologise — there was a technical issue. Please try again or contact the front desk.${detail}`,
         },
       ])
     } finally {
