@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { loadHotelConfig } from '@/lib/knowledge-base/loader'
 import { toHotelKnowledge } from '@/lib/knowledge-base/mapper'
+import { buildContext } from '@/lib/context/builder'
+import { interpretMessage } from '@/lib/ai/interpreter'
+import { decideEscalation } from '@/lib/ai/escalation'
+import { handleEscalation } from '@/lib/ai/escalationHandler'
+import { getProactiveMessage } from '@/lib/ai/proactive'
 import { buildSystemPrompt } from '@/lib/system-prompt'
 import { postProcess } from '@/lib/post-processor'
 import { ChatApiError, parseChatRequestBody, type ChatMessage } from '@/lib/api/chat'
@@ -32,10 +37,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Hotel not found.', code: 'HOTEL_NOT_FOUND', detail, requestId }, { status: 404 })
   }
 
+  const hotel = toHotelKnowledge(hotelConfig)
   const context = buildContext(hotelConfig)
-  const interpreted = interpretMessage(message, history)
+  const interpreted = interpretMessage(message, history ?? [])
   const escalationDecision = decideEscalation(interpreted, hotelConfig)
   const escalationAction = handleEscalation(escalationDecision, hotelConfig)
+  const proactiveMessage = getProactiveMessage(hotelConfig, context, false)
+  const systemPrompt = buildSystemPrompt(hotel, guestContext)
 
   const hotelKnowledge = toHotelKnowledge(hotelConfig)
   const systemPrompt = buildSystemPrompt(hotelKnowledge, guestContext)
@@ -68,22 +76,16 @@ export async function POST(req: NextRequest) {
   const { cleanText, metadata } = postProcess(rawText)
   const proactiveMessage = getProactiveMessage(hotelConfig, context, false)
 
-  const reply = escalationAction.appendToResponse
-    ? `${cleanText}\n\n${escalationAction.appendToResponse}`
-    : cleanText
+  const escalationLevelMap: Record<string, number> = { none: 0, low: 1, high: 2, critical: 3 }
+  const modelEscalationLevel = escalationLevelMap[metadata.escalation] ?? 0
+  const escalationLevel = Math.max(modelEscalationLevel, escalationDecision.level)
+  const reply = [cleanText, escalationAction.appendToResponse, proactiveMessage?.text].filter(Boolean).join('\n\n')
 
   return NextResponse.json({
     reply,
-    escalationLevel: escalationDecision.level,
-    handoff: escalationDecision.handoff,
-    intent: interpreted.intent,
-    language: interpreted.detectedLanguage,
-    metadata,
-    context: {
-      localTime: context.localTime,
-      localDate: context.localDate,
-      proactiveMessage,
-      systemNote: escalationAction.systemNote,
-    },
+    escalationLevel,
+    handoff: escalationDecision.handoff || escalationLevel >= 3,
+    intent: metadata.intent || interpreted.intent,
+    language: metadata.language || interpreted.detectedLanguage,
   })
 }
