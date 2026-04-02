@@ -6,6 +6,8 @@ import type { ChatMessage } from '@/app/api/chat/route'
 type Props = {
   hotelId: string
   hotelName: string
+  guestName?: string
+  roomNumber?: string
 }
 
 type DisplayMessage = ChatMessage & {
@@ -13,11 +15,13 @@ type DisplayMessage = ChatMessage & {
   handoff?: boolean
 }
 
-export default function ChatInterface({ hotelId, hotelName }: Props) {
+export default function ChatInterface({ hotelId, hotelName, guestName, roomNumber }: Props) {
   const [messages, setMessages] = useState<DisplayMessage[]>([
     {
       role: 'assistant',
-      content: `Welcome to ${hotelName}. How may I assist you today?`,
+      content: guestName
+        ? `Willkommen, ${guestName}. Wie kann ich Ihnen behilflich sein?`
+        : `Welcome to ${hotelName}. How may I assist you today?`,
     },
   ])
   const [input, setInput] = useState('')
@@ -45,7 +49,12 @@ export default function ChatInterface({ hotelId, hotelName }: Props) {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hotelId, message: text, history }),
+        body: JSON.stringify({
+          hotelId,
+          message: text,
+          history,
+          guestContext: guestName && roomNumber ? { name: guestName, room: roomNumber } : undefined,
+        }),
       })
 
       if (!res.ok) {

@@ -13,9 +13,9 @@ export type ChatMessage = {
 }
 
 export async function POST(req: NextRequest) {
-  let hotelId: string, message: string, history: ChatMessage[]
+  let hotelId: string, message: string, history: ChatMessage[], guestContext: { name: string; room?: string; stayNights?: number } | undefined
   try {
-    ;({ hotelId, message, history } = await req.json())
+    ;({ hotelId, message, history, guestContext } = await req.json())
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   }
 
   const hotel = toHotelKnowledge(hotelConfig)
-  const systemPrompt = buildSystemPrompt(hotel)
+  const systemPrompt = buildSystemPrompt(hotel, guestContext)
 
   const messages = [
     ...(history ?? []).map((h) => ({ role: h.role, content: h.content })),
@@ -63,9 +63,13 @@ export async function POST(req: NextRequest) {
 
   const { cleanText, metadata } = postProcess(rawText)
 
+  const escalationLevelMap: Record<string, number> = { none: 0, low: 1, high: 2, critical: 3 }
+  const escalationLevel = escalationLevelMap[metadata.escalation] ?? 0
+
   return NextResponse.json({
     reply: cleanText,
-    escalation: metadata.escalation,
+    escalationLevel,
+    handoff: escalationLevel >= 3,
     intent: metadata.intent,
     language: metadata.language,
   })
