@@ -8,6 +8,7 @@ type Props = {
   hotelName: string
   guestName?: string
   roomNumber?: string
+  chatToken: string
 }
 
 type DisplayMessage = ChatMessage & {
@@ -15,7 +16,7 @@ type DisplayMessage = ChatMessage & {
   handoff?: boolean
 }
 
-export default function ChatInterface({ hotelId, hotelName, guestName, roomNumber }: Props) {
+export default function ChatInterface({ hotelId, hotelName, guestName, roomNumber, chatToken }: Props) {
   const [messages, setMessages] = useState<DisplayMessage[]>([
     {
       role: 'assistant',
@@ -48,7 +49,10 @@ export default function ChatInterface({ hotelId, hotelName, guestName, roomNumbe
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-chat-token': chatToken,
+        },
         body: JSON.stringify({
           hotelId,
           message: text,

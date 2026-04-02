@@ -14,6 +14,7 @@ type Props = {
   localArea: LocalTip[]
   events: HotelEvent[]
   sportFacilities: SportFacility[]
+  chatToken: string
 }
 
 const PHASES = [
@@ -22,7 +23,7 @@ const PHASES = [
   { label: 'Aufenthalt', date: '30. Mär – 2. Apr' },
 ]
 
-export default function GuestJourney({ hotelId, hotelName, booking, localArea, events, sportFacilities }: Props) {
+export default function GuestJourney({ hotelId, hotelName, booking, localArea, events, sportFacilities, chatToken }: Props) {
   const [phase, setPhase] = useState(0)
 
   return (
@@ -67,6 +68,7 @@ export default function GuestJourney({ hotelId, hotelName, booking, localArea, e
           hotelName={hotelName}
           guestName={booking.firstName}
           roomNumber={booking.roomNumber}
+          chatToken={chatToken}
         />
       )}
     </div>
